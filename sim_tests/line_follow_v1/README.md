@@ -11,7 +11,8 @@ TDPS-Simulator/sim_tests/
 └── line_follow_v1/
     ├── config/
     │   └── scenarios_default.csv
-    └── lf_autotest_harness.c
+  ├── lf_autotest_harness.c
+  └── lf_radar_autotest.c
 ```
 
 ## Commands
@@ -32,6 +33,12 @@ bash TDPS-Simulator/scripts/line_follow_cli.sh stability 15 0.01 0.12 20260319 2
 # run-config
 bash TDPS-Simulator/scripts/line_follow_cli.sh run-config \
   TDPS-Simulator/sim_tests/line_follow_v1/config/scenarios_default.csv
+
+# radar parser
+bash TDPS-Simulator/scripts/run_radar_autotest.sh
+
+# full system regression
+bash TDPS-Simulator/scripts/run_system_autotest.sh
 ```
 
 ## Gates
