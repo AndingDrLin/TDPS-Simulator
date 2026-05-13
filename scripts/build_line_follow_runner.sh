@@ -13,16 +13,19 @@ mkdir -p "$(dirname "${RUNNER_BIN}")"
 
 echo "[build] compiling line-follow autotest runner..."
 gcc -std=c11 -Wall -Wextra -Werror \
-  -I"${ROOT_DIR}/code/line_follow_v1/Inc" \
+  -I"${ROOT_DIR}/firmware/Inc" \
+  -I"${ROOT_DIR}/firmware/common" \
+  -I"${ROOT_DIR}/firmware/platform" \
   -I"${LF_COMMON_DIR}" \
   -I"${LF_COMMON_DIR}/harness" \
   -I"${LF_SUITE_DIR}" \
-  "${ROOT_DIR}/code/line_follow_v1/Src/lf_app.c" \
-  "${ROOT_DIR}/code/line_follow_v1/Src/lf_chassis.c" \
-  "${ROOT_DIR}/code/line_follow_v1/Src/lf_config.c" \
-  "${ROOT_DIR}/code/line_follow_v1/Src/lf_control.c" \
-  "${ROOT_DIR}/code/line_follow_v1/Src/lf_sensor.c" \
-  "${ROOT_DIR}/code/line_follow_v1/Src/lf_future_hooks.c" \
+  "${ROOT_DIR}/firmware/Src/lf_app.c" \
+  "${ROOT_DIR}/firmware/Src/lf_chassis.c" \
+  "${LF_SUITE_DIR}/lf_sim_config_override.c" \
+  "${ROOT_DIR}/firmware/Src/lf_control.c" \
+  "${ROOT_DIR}/firmware/Src/lf_sensor.c" \
+  "${ROOT_DIR}/firmware/Src/lf_radar.c" \
+  "${ROOT_DIR}/firmware/Src/lf_future_hooks.c" \
   "${LF_COMMON_DIR}/harness/lf_harness_core.c" \
   "${LF_COMMON_DIR}/harness/lf_harness_scenarios.c" \
   "${LF_COMMON_DIR}/harness/lf_harness_evaluator.c" \

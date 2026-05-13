@@ -5,7 +5,7 @@
 
 #include "lf_platform.h"
 
-_Static_assert(LF_SENSOR_COUNT == 4U, "lf_autotest_harness assumes 4 line sensors.");
+_Static_assert(LF_SENSOR_COUNT == 8U, "lf_autotest_harness assumes 8 line sensors.");
 
 typedef struct {
     double x;
@@ -33,10 +33,14 @@ static double g_sensor_bias_span = 0.006;
 static double g_dropout_hold_scale = 0.20;
 
 static const double k_sensor_xy[LF_SENSOR_COUNT][2] = {
-    {0.16, 0.075},
-    {0.16, 0.025},
-    {0.16, -0.025},
-    {0.16, -0.075},
+    {0.16, 0.0875},
+    {0.16, 0.0625},
+    {0.16, 0.0375},
+    {0.16, 0.0125},
+    {0.16, -0.0125},
+    {0.16, -0.0375},
+    {0.16, -0.0625},
+    {0.16, -0.0875},
 };
 
 static const LFH_Point2 k_patio_path[] = {
@@ -404,6 +408,13 @@ void LF_Platform_ReadLineSensorRaw(uint16_t out_raw[LF_SENSOR_COUNT])
     }
 
     LFH_Core_ReadSensorNormAndRaw(sensor_norm, out_raw);
+}
+
+uint16_t LF_Platform_RadarRead(uint8_t *out_buf, uint16_t max_len)
+{
+    (void)out_buf;
+    (void)max_len;
+    return 0U;
 }
 
 void LF_Platform_SetMotorCommand(int16_t left_cmd, int16_t right_cmd)

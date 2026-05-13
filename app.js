@@ -44,8 +44,8 @@ const wheelNames = ["FL", "FR", "RL", "RR"];
 const wheelValueEls = {};
 let codeEditor = null;
 
-const LF_V1_TEMPLATE = `// LF v1 compatibility template (ported from ../code/line_follow_v1).
-// Expects 4 line sensors in order S0..S3 (left -> right).
+const LF_V1_TEMPLATE = `// LF v1 compatibility template (ported from ../firmware).
+// Expects 8 line sensors in order S0..S7 (left -> right).
 
 const CFG = {
   control_period_ms: 10,
