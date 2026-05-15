@@ -75,6 +75,12 @@ bool LFH_Report_WriteJson(const char *path,
     fprintf(fp, "    \"overallScore\": %.6f,\n", summary->overall_score);
     fprintf(fp, "    \"avgLineDetectionRate\": %.6f,\n", summary->avg_line_detection_rate);
     fprintf(fp, "    \"maxLongestLostSec\": %.6f,\n", summary->max_longest_lost_sec);
+    fprintf(fp, "    \"maxMotorCommandDelta\": %.6f,\n", summary->max_motor_command_delta);
+    fprintf(fp, "    \"meanMotorCommandDelta\": %.6f,\n", summary->mean_motor_command_delta);
+    fprintf(fp, "    \"maxMotorJerk\": %.6f,\n", summary->max_motor_jerk);
+    fprintf(fp, "    \"reacquireTimeMs\": %.6f,\n", summary->reacquire_time_ms);
+    fprintf(fp, "    \"lostLineDurationMs\": %.6f,\n", summary->lost_line_duration_ms);
+    fprintf(fp, "    \"obstacleRecoverySuccess\": %s,\n", summary->obstacle_recovery_success ? "true" : "false");
     fprintf(fp, "    \"fullCourse\": {\n");
     fprintf(fp, "      \"scenarioCount\": %u,\n", summary->full_course_scenario_count);
     fprintf(fp, "      \"passedCount\": %u,\n", summary->full_course_passed_count);
@@ -191,6 +197,12 @@ bool LFH_Report_WriteJson(const char *path,
         fprintf(fp, "      \"rmsErrorM\": %.6f,\n", r->rms_error_m);
         fprintf(fp, "      \"maxAbsErrorM\": %.6f,\n", r->max_abs_error_m);
         fprintf(fp, "      \"motorSaturationRate\": %.6f,\n", r->motor_saturation_rate);
+        fprintf(fp, "      \"maxMotorCommandDelta\": %.6f,\n", r->max_motor_command_delta);
+        fprintf(fp, "      \"meanMotorCommandDelta\": %.6f,\n", r->mean_motor_command_delta);
+        fprintf(fp, "      \"maxMotorJerk\": %.6f,\n", r->max_motor_jerk);
+        fprintf(fp, "      \"reacquireTimeMs\": %.6f,\n", r->reacquire_time_ms);
+        fprintf(fp, "      \"lostLineDurationMs\": %.6f,\n", r->lost_line_duration_ms);
+        fprintf(fp, "      \"obstacleRecoverySuccess\": %s,\n", r->obstacle_recovery_success ? "true" : "false");
         fprintf(fp, "      \"distanceM\": %.6f,\n", r->distance_m);
         fprintf(fp, "      \"taskScore\": %.6f,\n", r->task_score);
         fprintf(fp, "      \"task\": {\n");

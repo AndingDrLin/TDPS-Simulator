@@ -62,4 +62,4 @@ bash TDPS-Simulator/scripts/line_follow_cli.sh run-config \
 - stability: `TDPS-Simulator/artifacts/line_follow_v1/reports/stability_runs/report_seed_*.json`
 - summary: `TDPS-Simulator/artifacts/line_follow_v1/reports/stability_runs/stability_summary.json`
 
-Schema reference: `docs/testing/report_schema.md`
+Key report metrics include `maxMotorCommandDelta`, `meanMotorCommandDelta`, `maxMotorJerk`, `reacquireTimeMs`, `lostLineDurationMs`, and `obstacleRecoverySuccess`.

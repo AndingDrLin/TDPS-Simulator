@@ -478,6 +478,8 @@ function formatAutoTestReport(report) {
     "Scenarios: " + (summary.scenarioCount || 0) + ", completed: " + (summary.completedCount || 0) + ", aborted: " + (summary.aborted ? "yes" : "no"),
     "Avg line detection: " + Number((summary.avgLineDetectionRate || 0) * 100).toFixed(1) + "%",
     "Max longest line loss: " + Number(summary.maxLongestLostSec || 0).toFixed(3) + " s",
+    "Max motor delta: " + Number(summary.maxMotorCommandDelta || 0).toFixed(3) + " m/s",
+    "Max motor jerk: " + Number(summary.maxMotorJerk || 0).toFixed(3) + " m/s/step",
   ];
 
   if (Array.isArray(report.issues) && report.issues.length > 0) {
@@ -936,6 +938,15 @@ async function runAutoTestScenario(scenario, options, scenarioIndex, scenarioCou
   let errorSamples = 0;
   let maxAbsError = 0;
   let motorSaturationSteps = 0;
+  let maxMotorCommandDelta = 0;
+  let motorCommandDeltaAccum = 0;
+  let motorCommandDeltaSamples = 0;
+  let maxMotorJerk = 0;
+  let prevMotorCommandMean = null;
+  let prevMotorCommandDelta = null;
+  let reacquireTimeAccum = 0;
+  let reacquireEvents = 0;
+  let currentLostStartSec = null;
   let distanceM = 0;
   let runtimeError = null;
   let prevLineDetected = null;
@@ -974,13 +985,33 @@ async function runAutoTestScenario(scenario, options, scenarioIndex, scenarioCou
       totalLostSec += dt;
       if (prevLineDetected === true) {
         lineLostTransitions += 1;
+        currentLostStartSec = sim.time;
       }
     }
 
     if (prevLineDetected === false && lineState.lineDetected) {
       lineRecoveredTransitions += 1;
+      if (currentLostStartSec != null) {
+        reacquireTimeAccum += Math.max(0, sim.time - currentLostStartSec);
+        reacquireEvents += 1;
+        currentLostStartSec = null;
+      }
     }
     prevLineDetected = lineState.lineDetected;
+
+    const motorCommandMean =
+      wheelNames.reduce((sum, name) => sum + Math.abs(sim.wheelSpeeds[name]), 0) / wheelNames.length;
+    if (prevMotorCommandMean != null) {
+      const motorCommandDelta = Math.abs(motorCommandMean - prevMotorCommandMean);
+      maxMotorCommandDelta = Math.max(maxMotorCommandDelta, motorCommandDelta);
+      motorCommandDeltaAccum += motorCommandDelta;
+      motorCommandDeltaSamples += 1;
+      if (prevMotorCommandDelta != null) {
+        maxMotorJerk = Math.max(maxMotorJerk, Math.abs(motorCommandDelta - prevMotorCommandDelta));
+      }
+      prevMotorCommandDelta = motorCommandDelta;
+    }
+    prevMotorCommandMean = motorCommandMean;
 
     const saturated = wheelNames.some((name) => Math.abs(sim.wheelSpeeds[name]) >= sim.maxAbsWheelSpeed - 1e-6);
     if (saturated) {
@@ -1002,6 +1033,12 @@ async function runAutoTestScenario(scenario, options, scenarioIndex, scenarioCou
   const meanAbsErrorM = errorSamples > 0 ? absErrorAccum / errorSamples : 0;
   const rmsErrorM = errorSamples > 0 ? Math.sqrt(sqErrorAccum / errorSamples) : 0;
   const motorSaturationRate = steps > 0 ? motorSaturationSteps / steps : 0;
+  const meanMotorCommandDelta =
+    motorCommandDeltaSamples > 0 ? motorCommandDeltaAccum / motorCommandDeltaSamples : 0;
+  const reacquireTimeMs = reacquireEvents > 0 ? (reacquireTimeAccum / reacquireEvents) * 1000 : 0;
+  const lostLineDurationMs = longestLostSec * 1000;
+  const obstacleRecoverySuccess =
+    scenario.obstacles && scenario.obstacles.enabled ? runtimeError == null && lineDetectionRate >= 0.85 : true;
 
   const result = {
     id: scenario.id,
@@ -1019,6 +1056,12 @@ async function runAutoTestScenario(scenario, options, scenarioIndex, scenarioCou
     rmsErrorM,
     maxAbsErrorM: maxAbsError,
     motorSaturationRate,
+    maxMotorCommandDelta,
+    meanMotorCommandDelta,
+    maxMotorJerk,
+    reacquireTimeMs,
+    lostLineDurationMs,
+    obstacleRecoverySuccess,
     distanceM,
     runtimeError,
   };
@@ -1044,6 +1087,20 @@ function buildAutoTestReport({
     results.length > 0 ? results.reduce((sum, r) => sum + r.score, 0) / results.length : 0;
   const maxLongestLostSec =
     results.length > 0 ? Math.max(...results.map((r) => r.longestLostSec || 0)) : 0;
+  const maxMotorCommandDelta =
+    results.length > 0 ? Math.max(...results.map((r) => r.maxMotorCommandDelta || 0)) : 0;
+  const meanMotorCommandDelta =
+    results.length > 0 ? results.reduce((sum, r) => sum + (r.meanMotorCommandDelta || 0), 0) / results.length : 0;
+  const maxMotorJerk =
+    results.length > 0 ? Math.max(...results.map((r) => r.maxMotorJerk || 0)) : 0;
+  const reacquireSamples = results.filter((r) => (r.reacquireTimeMs || 0) > 0);
+  const reacquireTimeMs =
+    reacquireSamples.length > 0
+      ? reacquireSamples.reduce((sum, r) => sum + r.reacquireTimeMs, 0) / reacquireSamples.length
+      : 0;
+  const lostLineDurationMs =
+    results.length > 0 ? Math.max(...results.map((r) => r.lostLineDurationMs || 0)) : 0;
+  const obstacleRecoverySuccess = results.every((r) => r.obstacleRecoverySuccess !== false);
 
   const issues = [];
   if (aborted) {
@@ -1082,6 +1139,12 @@ function buildAutoTestReport({
       overallScore,
       avgLineDetectionRate,
       maxLongestLostSec,
+      maxMotorCommandDelta,
+      meanMotorCommandDelta,
+      maxMotorJerk,
+      reacquireTimeMs,
+      lostLineDurationMs,
+      obstacleRecoverySuccess,
     },
     issues,
     scenarios: results,
@@ -1159,6 +1222,12 @@ async function runAutoTestSuite() {
           rmsErrorM: 0,
           maxAbsErrorM: 0,
           motorSaturationRate: 0,
+          maxMotorCommandDelta: 0,
+          meanMotorCommandDelta: 0,
+          maxMotorJerk: 0,
+          reacquireTimeMs: 0,
+          lostLineDurationMs: 0,
+          obstacleRecoverySuccess: false,
           distanceM: 0,
           runtimeError: "Track/sensor config apply failed",
           score: 0,

@@ -117,6 +117,16 @@ LFH_ScenarioResult LFH_Evaluator_RunScenario(const LFH_Scenario *scenario, const
     double sq_error_accum = 0.0;
     uint32_t error_samples = 0U;
     uint32_t motor_saturation_steps = 0U;
+    double prev_motor_command_mean = 0.0;
+    double prev_motor_command_delta = 0.0;
+    double motor_command_delta_accum = 0.0;
+    uint32_t motor_command_delta_samples = 0U;
+    double lost_start_sec = 0.0;
+    double reacquire_time_accum = 0.0;
+    uint32_t reacquire_events = 0U;
+    bool motor_command_valid = false;
+    bool motor_delta_valid = false;
+    bool lost_start_valid = false;
     bool prev_valid = false;
     bool prev_line_detected = false;
     bool checkpoint_seen[32] = {false};
@@ -187,14 +197,44 @@ LFH_ScenarioResult LFH_Evaluator_RunScenario(const LFH_Scenario *scenario, const
             result.total_lost_sec += cfg->dt_sec;
             if (prev_valid && prev_line_detected) {
                 result.line_lost_transitions += 1U;
+                lost_start_sec = (double)result.steps * cfg->dt_sec;
+                lost_start_valid = true;
             }
         }
 
         if (prev_valid && (!prev_line_detected) && st.line_detected) {
             result.line_recovered_transitions += 1U;
+            if (lost_start_valid) {
+                reacquire_time_accum += fmax(0.0, (double)result.steps * cfg->dt_sec - lost_start_sec);
+                reacquire_events += 1U;
+                lost_start_valid = false;
+            }
         }
         prev_line_detected = st.line_detected;
         prev_valid = true;
+
+        {
+            double motor_command_mean =
+                ((double)abs(LFH_Core_GetLeftCommand()) + (double)abs(LFH_Core_GetRightCommand())) * 0.5;
+            if (motor_command_valid) {
+                double delta = fabs(motor_command_mean - prev_motor_command_mean);
+                if (delta > result.max_motor_command_delta) {
+                    result.max_motor_command_delta = delta;
+                }
+                motor_command_delta_accum += delta;
+                motor_command_delta_samples += 1U;
+                if (motor_delta_valid) {
+                    double jerk = fabs(delta - prev_motor_command_delta);
+                    if (jerk > result.max_motor_jerk) {
+                        result.max_motor_jerk = jerk;
+                    }
+                }
+                prev_motor_command_delta = delta;
+                motor_delta_valid = true;
+            }
+            prev_motor_command_mean = motor_command_mean;
+            motor_command_valid = true;
+        }
 
         if ((abs(LFH_Core_GetLeftCommand()) >= (g_lf_config.max_motor_cmd - 1)) ||
             (abs(LFH_Core_GetRightCommand()) >= (g_lf_config.max_motor_cmd - 1))) {
@@ -317,6 +357,16 @@ LFH_ScenarioResult LFH_Evaluator_RunScenario(const LFH_Scenario *scenario, const
         result.line_detection_rate /= (double)result.steps;
         result.motor_saturation_rate = (double)motor_saturation_steps / (double)result.steps;
     }
+    if (motor_command_delta_samples > 0U) {
+        result.mean_motor_command_delta = motor_command_delta_accum / (double)motor_command_delta_samples;
+    }
+    if (reacquire_events > 0U) {
+        result.reacquire_time_ms = (reacquire_time_accum / (double)reacquire_events) * 1000.0;
+    }
+    result.lost_line_duration_ms = result.longest_lost_sec * 1000.0;
+    result.obstacle_recovery_success =
+        scenario->obstacle_mode == LFH_OBSTACLE_NONE ||
+        (result.obstacle_avoid_started_count == result.obstacle_avoid_completed_count && !result.collided && !result.has_runtime_error);
     if (error_samples > 0U) {
         result.mean_abs_error_m = abs_error_accum / (double)error_samples;
         result.rms_error_m = sqrt(sq_error_accum / (double)error_samples);
@@ -387,6 +437,13 @@ void LFH_Evaluator_BuildSuiteSummary(const LFH_ScenarioResult *results,
     double score_sum = 0.0;
     double detect_sum = 0.0;
     double max_longest = 0.0;
+    double max_motor_delta = 0.0;
+    double motor_delta_sum = 0.0;
+    double max_motor_jerk = 0.0;
+    double reacquire_sum = 0.0;
+    uint32_t reacquire_count = 0U;
+    double max_lost_line_ms = 0.0;
+    bool obstacle_recovery_success = true;
     double min_progress_percent = 100.0;
     double max_finish_time_sec = 0.0;
 
@@ -402,9 +459,26 @@ void LFH_Evaluator_BuildSuiteSummary(const LFH_ScenarioResult *results,
         if (results[i].longest_lost_sec > max_longest) {
             max_longest = results[i].longest_lost_sec;
         }
+        if (results[i].max_motor_command_delta > max_motor_delta) {
+            max_motor_delta = results[i].max_motor_command_delta;
+        }
+        if (results[i].max_motor_jerk > max_motor_jerk) {
+            max_motor_jerk = results[i].max_motor_jerk;
+        }
+        if (results[i].lost_line_duration_ms > max_lost_line_ms) {
+            max_lost_line_ms = results[i].lost_line_duration_ms;
+        }
+        if (results[i].reacquire_time_ms > 0.0) {
+            reacquire_sum += results[i].reacquire_time_ms;
+            reacquire_count += 1U;
+        }
+        if (!results[i].obstacle_recovery_success) {
+            obstacle_recovery_success = false;
+        }
 
         score_sum += results[i].score;
         detect_sum += results[i].line_detection_rate;
+        motor_delta_sum += results[i].mean_motor_command_delta;
 
         if (results[i].has_runtime_error) {
             if (*runtime_issue_count > 0U) {
@@ -438,6 +512,12 @@ void LFH_Evaluator_BuildSuiteSummary(const LFH_ScenarioResult *results,
     summary->overall_score = score_sum / (double)result_count;
     summary->avg_line_detection_rate = detect_sum / (double)result_count;
     summary->max_longest_lost_sec = max_longest;
+    summary->max_motor_command_delta = max_motor_delta;
+    summary->mean_motor_command_delta = motor_delta_sum / (double)result_count;
+    summary->max_motor_jerk = max_motor_jerk;
+    summary->reacquire_time_ms = reacquire_count > 0U ? reacquire_sum / (double)reacquire_count : 0.0;
+    summary->lost_line_duration_ms = max_lost_line_ms;
+    summary->obstacle_recovery_success = obstacle_recovery_success;
     summary->full_course_scenario_count = full_course_count;
     summary->full_course_passed_count = full_course_passed;
     summary->full_course_all_passed = full_course_count > 0U && full_course_passed == full_course_count;

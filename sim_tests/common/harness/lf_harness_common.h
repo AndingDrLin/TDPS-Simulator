@@ -98,6 +98,12 @@ typedef struct {
     double rms_error_m;
     double max_abs_error_m;
     double motor_saturation_rate;
+    double max_motor_command_delta;
+    double mean_motor_command_delta;
+    double max_motor_jerk;
+    double reacquire_time_ms;
+    double lost_line_duration_ms;
+    bool obstacle_recovery_success;
     double distance_m;
     double score;
     double task_score;
@@ -157,6 +163,12 @@ typedef struct {
     double overall_score;
     double avg_line_detection_rate;
     double max_longest_lost_sec;
+    double max_motor_command_delta;
+    double mean_motor_command_delta;
+    double max_motor_jerk;
+    double reacquire_time_ms;
+    double lost_line_duration_ms;
+    bool obstacle_recovery_success;
     uint32_t full_course_scenario_count;
     uint32_t full_course_passed_count;
     bool full_course_all_passed;

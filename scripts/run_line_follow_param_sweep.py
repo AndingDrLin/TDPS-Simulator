@@ -38,6 +38,12 @@ SUMMARY_FIELDS = [
     "avgLineDetectionRate",
     "maxLongestLostSec",
     "avgMotorSaturationRate",
+    "maxMotorCommandDelta",
+    "meanMotorCommandDelta",
+    "maxMotorJerk",
+    "reacquireTimeMs",
+    "lostLineDurationMs",
+    "obstacleRecoverySuccess",
     "avgTaskScore",
     "checkpointMissed",
     "checkpointOutOfOrder",
@@ -190,6 +196,12 @@ def scenario_metrics(report: dict) -> dict:
         "avgLineDetectionRate": avg([s.get("lineDetectionRate", 0.0) for s in source]),
         "maxLongestLostSec": max([s.get("longestLostSec", 0.0) for s in source], default=0.0),
         "avgMotorSaturationRate": avg([s.get("motorSaturationRate", 0.0) for s in source]),
+        "maxMotorCommandDelta": max([s.get("maxMotorCommandDelta", 0.0) for s in source], default=0.0),
+        "meanMotorCommandDelta": avg([s.get("meanMotorCommandDelta", 0.0) for s in source]),
+        "maxMotorJerk": max([s.get("maxMotorJerk", 0.0) for s in source], default=0.0),
+        "reacquireTimeMs": avg([s.get("reacquireTimeMs", 0.0) for s in source if s.get("reacquireTimeMs", 0.0) > 0.0]),
+        "lostLineDurationMs": max([s.get("lostLineDurationMs", 0.0) for s in source], default=0.0),
+        "obstacleRecoverySuccess": int(all(s.get("obstacleRecoverySuccess", True) for s in source)),
         "avgTaskScore": avg([s.get("taskScore", 0.0) for s in source]),
         "checkpointMissed": sum(int(s.get("checkpoints", {}).get("missed", 0)) for s in source),
         "checkpointOutOfOrder": sum(int(s.get("checkpoints", {}).get("outOfOrder", 0)) for s in source),
@@ -223,6 +235,12 @@ def aggregate_reports(reports: list[tuple[int, str, int, Path]]) -> dict:
         "avgLineDetectionRate": 0.0,
         "maxLongestLostSec": 0.0,
         "avgMotorSaturationRate": 0.0,
+        "maxMotorCommandDelta": 0.0,
+        "meanMotorCommandDelta": 0.0,
+        "maxMotorJerk": 0.0,
+        "reacquireTimeMs": 0.0,
+        "lostLineDurationMs": 0.0,
+        "obstacleRecoverySuccess": 1,
         "avgTaskScore": 0.0,
         "checkpointMissed": 0,
         "checkpointOutOfOrder": 0,
@@ -240,6 +258,8 @@ def aggregate_reports(reports: list[tuple[int, str, int, Path]]) -> dict:
     finish_avgs = []
     detection_avgs = []
     saturation_avgs = []
+    motor_delta_avgs = []
+    reacquire_avgs = []
     task_avgs = []
 
     if not reports:
@@ -258,6 +278,10 @@ def aggregate_reports(reports: list[tuple[int, str, int, Path]]) -> dict:
         totals["minProgressPercent"] = min(totals["minProgressPercent"], metrics["minProgressPercent"])
         totals["maxFinishTimeSec"] = max(totals["maxFinishTimeSec"], metrics["maxFinishTimeSec"])
         totals["maxLongestLostSec"] = max(totals["maxLongestLostSec"], metrics["maxLongestLostSec"])
+        totals["maxMotorCommandDelta"] = max(totals["maxMotorCommandDelta"], metrics["maxMotorCommandDelta"])
+        totals["maxMotorJerk"] = max(totals["maxMotorJerk"], metrics["maxMotorJerk"])
+        totals["lostLineDurationMs"] = max(totals["lostLineDurationMs"], metrics["lostLineDurationMs"])
+        totals["obstacleRecoverySuccess"] = int(bool(totals["obstacleRecoverySuccess"]) and bool(metrics["obstacleRecoverySuccess"]))
         totals["checkpointMissed"] += metrics["checkpointMissed"]
         totals["checkpointOutOfOrder"] += metrics["checkpointOutOfOrder"]
         totals["checkpointDuplicates"] += metrics["checkpointDuplicates"]
@@ -274,11 +298,16 @@ def aggregate_reports(reports: list[tuple[int, str, int, Path]]) -> dict:
             finish_avgs.append(metrics["avgFinishTimeSec"])
         detection_avgs.append(metrics["avgLineDetectionRate"])
         saturation_avgs.append(metrics["avgMotorSaturationRate"])
+        motor_delta_avgs.append(metrics["meanMotorCommandDelta"])
+        if metrics["reacquireTimeMs"] > 0.0:
+            reacquire_avgs.append(metrics["reacquireTimeMs"])
         task_avgs.append(metrics["avgTaskScore"])
 
     totals["avgFinishTimeSec"] = avg(finish_avgs)
     totals["avgLineDetectionRate"] = avg(detection_avgs)
     totals["avgMotorSaturationRate"] = avg(saturation_avgs)
+    totals["meanMotorCommandDelta"] = avg(motor_delta_avgs)
+    totals["reacquireTimeMs"] = avg(reacquire_avgs)
     totals["avgTaskScore"] = avg(task_avgs)
     totals["fullCoursePassRate"] = (
         totals["fullCoursePassed"] / totals["fullCourseTotal"] if totals["fullCourseTotal"] else 0.0
@@ -304,9 +333,13 @@ def rank_key(row: dict):
         int(float(row.get("checkpointDuplicates", 0))),
         -float(row.get("minProgressPercent", 0.0)),
         float(row.get("maxLongestLostSec", 999.0)),
+        float(row.get("lostLineDurationMs", 999000.0)),
+        int(float(row.get("obstacleRecoverySuccess", 0))) == 0,
         -float(row.get("avgLineDetectionRate", 0.0)),
         float(row.get("avgFinishTimeSec", 999.0)) if float(row.get("avgFinishTimeSec", 0.0)) > 0 else 999.0,
         float(row.get("avgMotorSaturationRate", 999.0)),
+        float(row.get("maxMotorCommandDelta", 999.0)),
+        float(row.get("maxMotorJerk", 999.0)),
     )
 
 
