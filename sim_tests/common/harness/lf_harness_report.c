@@ -59,7 +59,7 @@ bool LFH_Report_WriteJson(const char *path,
 
     fprintf(fp, "{\n");
     fprintf(fp, "  \"version\": %u,\n", LFH_REPORT_SCHEMA_VERSION);
-    fprintf(fp, "  \"schema\": \"lf_autotest_report_v4\",\n");
+    fprintf(fp, "  \"schema\": \"lf_autotest_report_v6\",\n");
     fprintf(fp, "  \"generatedAtEpochSec\": %ld,\n", now_epoch);
     fprintf(fp, "  \"config\": {\n");
     fprintf(fp, "    \"durationSec\": %.6f,\n", cfg->duration_sec);
@@ -74,7 +74,14 @@ bool LFH_Report_WriteJson(const char *path,
     fprintf(fp, "    \"aborted\": %s,\n", summary->aborted ? "true" : "false");
     fprintf(fp, "    \"overallScore\": %.6f,\n", summary->overall_score);
     fprintf(fp, "    \"avgLineDetectionRate\": %.6f,\n", summary->avg_line_detection_rate);
-    fprintf(fp, "    \"maxLongestLostSec\": %.6f\n", summary->max_longest_lost_sec);
+    fprintf(fp, "    \"maxLongestLostSec\": %.6f,\n", summary->max_longest_lost_sec);
+    fprintf(fp, "    \"fullCourse\": {\n");
+    fprintf(fp, "      \"scenarioCount\": %u,\n", summary->full_course_scenario_count);
+    fprintf(fp, "      \"passedCount\": %u,\n", summary->full_course_passed_count);
+    fprintf(fp, "      \"allPassed\": %s,\n", summary->full_course_all_passed ? "true" : "false");
+    fprintf(fp, "      \"minProgressPercent\": %.6f,\n", summary->full_course_min_progress_percent);
+    fprintf(fp, "      \"maxFinishTimeSec\": %.6f\n", summary->full_course_max_finish_time_sec);
+    fprintf(fp, "    }\n");
     fprintf(fp, "  },\n");
 
     fprintf(fp, "  \"confidence\": {\n");
@@ -185,6 +192,52 @@ bool LFH_Report_WriteJson(const char *path,
         fprintf(fp, "      \"maxAbsErrorM\": %.6f,\n", r->max_abs_error_m);
         fprintf(fp, "      \"motorSaturationRate\": %.6f,\n", r->motor_saturation_rate);
         fprintf(fp, "      \"distanceM\": %.6f,\n", r->distance_m);
+        fprintf(fp, "      \"taskScore\": %.6f,\n", r->task_score);
+        fprintf(fp, "      \"task\": {\n");
+        fprintf(fp, "        \"finished\": %s,\n", r->finished ? "true" : "false");
+        fprintf(fp, "        \"finishTimeSec\": %.6f,\n", r->finish_time_sec);
+        fprintf(fp, "        \"collided\": %s,\n", r->collided ? "true" : "false");
+        fprintf(fp, "        \"boundaryViolationCount\": %u,\n", r->boundary_violation_count);
+        fprintf(fp, "        \"boundaryViolationSteps\": %u\n", r->boundary_violation_steps);
+        fprintf(fp, "      },\n");
+        fprintf(fp, "      \"course\": {\n");
+        fprintf(fp, "        \"enabled\": %s,\n", r->full_course_enabled ? "true" : "false");
+        fprintf(fp, "        \"fullCoursePassed\": %s,\n", r->full_course_passed ? "true" : "false");
+        fprintf(fp, "        \"validFinish\": %s,\n", r->valid_finish ? "true" : "false");
+        fprintf(fp, "        \"progressM\": %.6f,\n", r->progress_m);
+        fprintf(fp, "        \"maxProgressM\": %.6f,\n", r->max_progress_m);
+        fprintf(fp, "        \"courseLengthM\": %.6f,\n", r->course_length_m);
+        fprintf(fp, "        \"progressPercent\": %.6f,\n", r->progress_percent);
+        fprintf(fp, "        \"boundaryViolationSec\": %.6f\n", r->boundary_violation_sec);
+        fprintf(fp, "      },\n");
+        fprintf(fp, "      \"obstacles\": {\n");
+        fprintf(fp, "        \"count\": %u,\n", r->obstacle_count);
+        fprintf(fp, "        \"detected\": %u,\n", r->obstacle_detected_count);
+        fprintf(fp, "        \"avoidStarted\": %u,\n", r->obstacle_avoid_started_count);
+        fprintf(fp, "        \"avoidCompleted\": %u\n", r->obstacle_avoid_completed_count);
+        fprintf(fp, "      },\n");
+        fprintf(fp, "      \"checkpoints\": {\n");
+        fprintf(fp, "        \"expected\": %u,\n", r->checkpoint_expected_count);
+        fprintf(fp, "        \"triggered\": %u,\n", r->checkpoint_triggered_count);
+        fprintf(fp, "        \"missed\": %u,\n", r->checkpoint_missed_count);
+        fprintf(fp, "        \"duplicates\": %u,\n", r->checkpoint_duplicate_count);
+        fprintf(fp, "        \"outOfOrder\": %u,\n", r->checkpoint_out_of_order_count);
+        fprintf(fp, "        \"lastId\": %u\n", r->checkpoint_last_id);
+        fprintf(fp, "      },\n");
+        fprintf(fp, "      \"radar\": {\n");
+        fprintf(fp, "        \"detections\": %u\n", r->radar_detection_count);
+        fprintf(fp, "      },\n");
+        fprintf(fp, "      \"wireless\": {\n");
+        fprintf(fp, "        \"enabled\": %s,\n", r->wireless_enabled ? "true" : "false");
+        fprintf(fp, "        \"queueDepth\": %u,\n", (unsigned)r->wireless_queue_depth);
+        fprintf(fp, "        \"queueDropped\": %u,\n", (unsigned)r->wireless_queue_dropped);
+        fprintf(fp, "        \"txSuccess\": %u,\n", (unsigned)r->wireless_tx_success_count);
+        fprintf(fp, "        \"txFail\": %u,\n", (unsigned)r->wireless_tx_fail_count);
+        fprintf(fp, "        \"retryCount\": %u,\n", (unsigned)r->wireless_retry_count);
+        fprintf(fp, "        \"checkpointEnqueued\": %u,\n", (unsigned)r->wireless_checkpoint_enqueued_count);
+        fprintf(fp, "        \"checkpointEnqueueFail\": %u,\n", (unsigned)r->wireless_checkpoint_enqueue_fail_count);
+        fprintf(fp, "        \"checkpointThrottled\": %u\n", (unsigned)r->wireless_checkpoint_throttled_count);
+        fprintf(fp, "      },\n");
         fprintf(fp,
                 "      \"runtimeError\": %s,\n",
                 r->has_runtime_error ? "\"State entered FAULT\"" : "null");

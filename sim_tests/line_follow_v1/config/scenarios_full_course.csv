@@ -1,0 +1,5 @@
+id,name,track,startX,startY,startTheta,noiseStd,dropoutProb,contrast,leftMotorScale,rightMotorScale,seed,radarEnable,obstacleMode,obstacleCount,obstacleSeed,checkpointEnable,checkpointExpectedCount,wirelessEnable,finishEnable,boundaryEnable
+patio_full_course_nominal,Patio full course nominal,patio_real,0.50,0.50,1.57079632679,0.008,0.001,1.00,1.00,1.00,501,false,none,0,0,true,2,true,true,true
+patio_full_course_offset_left,Patio full course left offset,patio_real,0.43,0.50,1.57079632679,0.008,0.001,1.00,1.00,1.00,502,false,none,0,0,true,2,true,true,true
+patio_full_course_offset_right,Patio full course right offset,patio_real,0.57,0.50,1.57079632679,0.008,0.001,1.00,1.00,1.00,503,false,none,0,0,true,2,true,true,true
+patio_full_course_motor_bias,Patio full course motor bias,patio_real,0.50,0.50,1.57079632679,0.010,0.002,0.98,0.96,1.04,504,false,none,0,0,true,2,true,true,true

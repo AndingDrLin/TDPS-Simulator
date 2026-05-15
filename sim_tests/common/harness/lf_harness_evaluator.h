@@ -20,4 +20,11 @@ void LFH_Evaluator_CollectIssues(const LFH_SuiteSummary *summary,
                                  size_t runtime_issue_count,
                                  LFH_IssueList *issue_list);
 
+void LFH_Evaluator_CollectFullCourseIssues(const LFH_ScenarioResult *results,
+                                           size_t result_count,
+                                           const LFH_SuiteSummary *summary,
+                                           const char runtime_ids[256],
+                                           size_t runtime_issue_count,
+                                           LFH_IssueList *issue_list);
+
 #endif

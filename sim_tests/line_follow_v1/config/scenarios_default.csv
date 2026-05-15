@@ -1,9 +1,17 @@
-id,name,track,startX,startY,startTheta,noiseStd,dropoutProb,contrast,leftMotorScale,rightMotorScale,seed
-circle_baseline,Circle baseline,circle,0.0,0.0,1.57079632679,0.005,0.000,1.00,1.00,1.00,101
-figure8_baseline,Figure8 baseline,figure8,0.0,0.0,1.57079632679,0.008,0.000,1.00,1.00,1.00,102
-patio_baseline,Patio proxy baseline,patio_proxy,0.0,0.0,1.57079632679,0.008,0.001,1.00,1.00,1.00,201
-patio_left_offset,Patio left offset,patio_proxy,-0.04,0.0,1.57079632679,0.012,0.003,1.00,1.00,1.00,202
-patio_right_offset,Patio right offset,patio_proxy,0.04,0.0,1.57079632679,0.012,0.003,1.00,1.00,1.00,203
-patio_noisy,Patio noisy sensors,patio_proxy,0.0,0.0,1.57079632679,0.028,0.010,0.94,1.00,1.00,204
-patio_motor_bias,Patio motor mismatch,patio_proxy,0.0,0.0,1.57079632679,0.015,0.004,0.97,0.93,1.07,205
-patio_stress,Patio combined stress,patio_proxy,-0.04,0.0,1.57079632679,0.032,0.015,0.90,0.92,1.08,206
+id,name,track,startX,startY,startTheta,noiseStd,dropoutProb,contrast,leftMotorScale,rightMotorScale,seed,radarEnable,obstacleMode,obstacleCount,obstacleSeed,checkpointEnable,checkpointExpectedCount,wirelessEnable,finishEnable,boundaryEnable
+circle_baseline,Circle baseline,circle,0.0,0.0,1.57079632679,0.005,0.000,1.00,1.00,1.00,101,false,none,0,0,false,0,false,false,false
+figure8_baseline,Figure8 baseline,figure8,0.0,0.0,1.57079632679,0.008,0.000,1.00,1.00,1.00,102,false,none,0,0,false,0,false,false,false
+patio_baseline,Patio proxy baseline,patio_proxy,0.0,0.0,1.57079632679,0.008,0.001,1.00,1.00,1.00,201,false,none,0,0,false,0,false,false,false
+patio_left_offset,Patio left offset,patio_proxy,-0.04,0.0,1.57079632679,0.012,0.003,1.00,1.00,1.00,202,false,none,0,0,false,0,false,false,false
+patio_right_offset,Patio right offset,patio_proxy,0.04,0.0,1.57079632679,0.012,0.003,1.00,1.00,1.00,203,false,none,0,0,false,0,false,false,false
+patio_noisy,Patio noisy sensors,patio_proxy,0.0,0.0,1.57079632679,0.028,0.010,0.94,1.00,1.00,204,false,none,0,0,false,0,false,false,false
+patio_motor_bias,Patio motor mismatch,patio_proxy,0.0,0.0,1.57079632679,0.015,0.004,0.97,0.93,1.07,205,false,none,0,0,false,0,false,false,false
+patio_stress,Patio combined stress,patio_proxy,-0.04,0.0,1.57079632679,0.032,0.015,0.90,0.92,1.08,206,false,none,0,0,false,0,false,false,false
+patio_real_baseline,Patio real baseline,patio_real,0.50,0.50,1.57079632679,0.008,0.001,1.00,1.00,1.00,301,false,none,0,0,true,2,false,true,true
+patio_real_left_offset,Patio real left offset,patio_real,0.46,0.50,1.57079632679,0.012,0.003,1.00,1.00,1.00,302,false,none,0,0,true,2,false,true,true
+patio_real_right_offset,Patio real right offset,patio_real,0.54,0.50,1.57079632679,0.012,0.003,1.00,1.00,1.00,303,false,none,0,0,true,2,false,true,true
+patio_real_noisy,Patio real noisy sensors,patio_real,0.50,0.50,1.57079632679,0.028,0.010,0.94,1.00,1.00,304,false,none,0,0,true,2,false,true,true
+patio_real_motor_bias,Patio real motor mismatch,patio_real,0.50,0.50,1.57079632679,0.015,0.004,0.97,0.93,1.07,305,false,none,0,0,true,2,false,true,true
+patio_real_fixed_obstacle,Patio real fixed obstacle,patio_real,0.50,0.50,1.57079632679,0.012,0.003,0.98,1.00,1.00,306,true,fixed,4,9101,true,2,false,true,true
+patio_real_random_obstacles,Patio real random obstacles,patio_real,0.50,0.50,1.57079632679,0.012,0.003,0.98,1.00,1.00,307,true,random,5,9102,true,2,false,true,true
+patio_real_stress,Patio real stress,patio_real,0.46,0.50,1.57079632679,0.032,0.015,0.90,0.92,1.08,308,true,random,8,9103,true,2,false,true,true

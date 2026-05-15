@@ -1,0 +1,7 @@
+id,name,track,startX,startY,startTheta,noiseStd,dropoutProb,contrast,leftMotorScale,rightMotorScale,seed,radarEnable,obstacleMode,obstacleCount,obstacleSeed,checkpointEnable,checkpointExpectedCount,wirelessEnable,finishEnable,boundaryEnable
+patio_task_start,Patio task start segment,patio_real,0.50,0.50,1.57079632679,0.008,0.001,1.00,1.00,1.00,401,false,none,0,0,false,0,false,false,true
+patio_task_checkpoint_21,Patio checkpoint 21,patio_real,2.45,3.05,1.57079632679,0.008,0.001,1.00,1.00,1.00,402,false,none,0,0,true,1,true,false,true
+patio_task_checkpoint_22,Patio checkpoint 22,patio_real,5.65,1.72,0.78539816339,0.008,0.001,1.00,1.00,1.00,403,false,none,0,0,true,1,true,false,true
+patio_task_finish,Patio finish approach,patio_real,6.90,2.15,0.00000000000,0.008,0.001,1.00,1.00,1.00,404,false,none,0,0,false,0,false,true,true
+patio_task_fixed_obstacle,Patio fixed obstacle radar,patio_real,2.45,2.70,1.57079632679,0.008,0.001,1.00,1.00,1.00,405,true,fixed,2,9201,false,0,false,false,true
+patio_task_random_obstacles,Patio random obstacle radar,patio_real,2.45,2.70,1.57079632679,0.010,0.002,0.98,1.00,1.00,406,true,random,4,9202,false,0,false,false,true

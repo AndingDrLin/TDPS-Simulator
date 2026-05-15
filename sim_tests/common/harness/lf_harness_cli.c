@@ -17,6 +17,11 @@
 
 #define LFH_PATH_BUF 512U
 
+typedef enum {
+    LFH_GATE_MODE_QUICK = 0,
+    LFH_GATE_MODE_FULL_COURSE,
+} LFH_GateMode;
+
 static bool lfh_parse_double_arg(const char *text, double min_v, double max_v, double *out)
 {
     char *end = NULL;
@@ -392,9 +397,10 @@ static int lfh_parse_trailing_options(int argc,
     return 0;
 }
 
-static int lfh_execute_quick(const LFH_TestConfig *cfg,
+static int lfh_execute_suite(const LFH_TestConfig *cfg,
                              const char *scenario_config_path,
                              const char *baseline_report_path,
+                             LFH_GateMode gate_mode,
                              LFH_SuiteSummary *out_summary)
 {
     LFH_SuiteSummary summary;
@@ -455,9 +461,24 @@ static int lfh_execute_quick(const LFH_TestConfig *cfg,
 
     LFH_Evaluator_BuildSuiteSummary(
         results, scenario_count, &summary, &low_score_count, runtime_ids, &runtime_issue_count);
-    LFH_Evaluator_CollectIssues(&summary, low_score_count, runtime_ids, runtime_issue_count, &issues);
+    if (gate_mode == LFH_GATE_MODE_FULL_COURSE) {
+        LFH_Evaluator_CollectFullCourseIssues(
+            results, scenario_count, &summary, runtime_ids, runtime_issue_count, &issues);
+    } else {
+        LFH_Evaluator_CollectIssues(&summary, low_score_count, runtime_ids, runtime_issue_count, &issues);
+    }
 
     lfh_compute_quick_confidence(&summary, cfg->disturbance_profile, &confidence);
+    if (gate_mode == LFH_GATE_MODE_FULL_COURSE) {
+        confidence.passed_hard_gate = (issues.issue_count == 0U);
+        if (summary.full_course_all_passed && summary.full_course_min_progress_percent >= 99.0) {
+            confidence.level = "High";
+        } else if (summary.full_course_all_passed) {
+            confidence.level = "Medium";
+        } else {
+            confidence.level = "Low";
+        }
+    }
 
     LFH_Baseline_Init(&baseline_comparison);
     baseline_comparison.current_overall_score = summary.overall_score;
@@ -499,6 +520,13 @@ static int lfh_execute_quick(const LFH_TestConfig *cfg,
            summary.overall_score,
            summary.avg_line_detection_rate * 100.0,
            summary.max_longest_lost_sec);
+    if (gate_mode == LFH_GATE_MODE_FULL_COURSE) {
+        printf("Full course: passed %u/%u, min progress %.2f%%, max finish %.3fs\n",
+               summary.full_course_passed_count,
+               summary.full_course_scenario_count,
+               summary.full_course_min_progress_percent,
+               summary.full_course_max_finish_time_sec);
+    }
     printf("Report: %s\n", cfg->report_path);
     printf("Confidence: %s (profile=%s, rule=%s, hardGate=%s)\n",
            confidence.level,
@@ -538,6 +566,22 @@ static int lfh_execute_quick(const LFH_TestConfig *cfg,
 
     free(results);
     return 0;
+}
+
+static int lfh_execute_quick(const LFH_TestConfig *cfg,
+                             const char *scenario_config_path,
+                             const char *baseline_report_path,
+                             LFH_SuiteSummary *out_summary)
+{
+    return lfh_execute_suite(cfg, scenario_config_path, baseline_report_path, LFH_GATE_MODE_QUICK, out_summary);
+}
+
+static int lfh_execute_full_course(const LFH_TestConfig *cfg,
+                                   const char *scenario_config_path,
+                                   const char *baseline_report_path,
+                                   LFH_SuiteSummary *out_summary)
+{
+    return lfh_execute_suite(cfg, scenario_config_path, baseline_report_path, LFH_GATE_MODE_FULL_COURSE, out_summary);
 }
 
 int LFH_Cli_RunLegacyAutotest(int argc, char **argv)
@@ -585,6 +629,7 @@ static void lfh_print_usage(const char *prog)
 {
     printf("Usage:\n");
     printf("  %s quick [duration] [dt] [line_threshold] [report_path] [base_seed] [scenario_config] [baseline_report] [profile]\n", prog);
+    printf("  %s full-course <config_path> [duration] [dt] [line_threshold] [report_path] [base_seed] [baseline_report] [profile]\n", prog);
     printf("  %s stability [duration] [dt] [line_threshold] [seed_start] [runs] [report_dir] [scenario_config] [baseline_report] [profile]\n", prog);
     printf("  %s run-config <config_path> [duration] [dt] [line_threshold] [report_path] [base_seed] [baseline_report] [profile]\n", prog);
     printf("  %s [legacy args]    # backward-compatible quick mode\n", prog);
@@ -638,6 +683,63 @@ static int lfh_run_quick_command(int argc, char **argv)
            lfh_profile_name(cfg.disturbance_profile));
 
     return lfh_execute_quick(&cfg, scenario_config_path, baseline_report_path, NULL);
+}
+
+static int lfh_run_full_course_command(int argc, char **argv)
+{
+    LFH_TestConfig cfg;
+    const char *scenario_config_path;
+    const char *baseline_report_path = NULL;
+
+    if (argc < 3) {
+        fprintf(stderr, "full-course requires <config_path>\n");
+        return 2;
+    }
+
+    lfh_set_default_config(&cfg);
+    cfg.duration_sec = 90.0;
+    cfg.report_path = "TDPS-Simulator/artifacts/line_follow_v1/reports/single_run/last_full_course_report.json";
+    scenario_config_path = argv[2];
+
+    if (argc >= 4 && lfh_parse_double_arg(argv[3], 1.0, 180.0, &cfg.duration_sec) == false) {
+        fprintf(stderr, "Invalid durationSec: %s\n", argv[3]);
+        return 2;
+    }
+    if (argc >= 5 && lfh_parse_double_arg(argv[4], 0.002, 0.05, &cfg.dt_sec) == false) {
+        fprintf(stderr, "Invalid dtSec: %s\n", argv[4]);
+        return 2;
+    }
+    if (argc >= 6 && lfh_parse_double_arg(argv[5], 0.01, 0.95, &cfg.line_threshold) == false) {
+        fprintf(stderr, "Invalid lineThreshold: %s\n", argv[5]);
+        return 2;
+    }
+    if (argc >= 7) {
+        cfg.report_path = argv[6];
+    }
+    if (argc >= 8 && lfh_parse_u32_arg(argv[7], &cfg.base_seed) == false) {
+        fprintf(stderr, "Invalid baseSeed: %s\n", argv[7]);
+        return 2;
+    }
+
+    if (lfh_parse_trailing_options(argc,
+                                   argv,
+                                   8,
+                                   false,
+                                   NULL,
+                                   &baseline_report_path,
+                                   &cfg.disturbance_profile) != 0) {
+        return 2;
+    }
+
+    printf("[lf-cli][full-course] config=%s duration=%.3f dt=%.3f threshold=%.3f seed=%u profile=%s\n",
+           scenario_config_path,
+           cfg.duration_sec,
+           cfg.dt_sec,
+           cfg.line_threshold,
+           cfg.base_seed,
+           lfh_profile_name(cfg.disturbance_profile));
+
+    return lfh_execute_full_course(&cfg, scenario_config_path, baseline_report_path, NULL);
 }
 
 static int lfh_run_run_config_command(int argc, char **argv)
@@ -860,6 +962,9 @@ int LFH_Cli_Run(int argc, char **argv)
     if (argc >= 2) {
         if (strcmp(argv[1], "quick") == 0) {
             return lfh_run_quick_command(argc, argv);
+        }
+        if (strcmp(argv[1], "full-course") == 0) {
+            return lfh_run_full_course_command(argc, argv);
         }
         if (strcmp(argv[1], "stability") == 0) {
             return lfh_run_stability_command(argc, argv);
