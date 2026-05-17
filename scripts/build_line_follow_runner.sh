@@ -9,6 +9,15 @@ LF_SUITE_DIR="${SIM_TEST_DIR}/line_follow_v1"
 ARTIFACT_DIR="${SIM_ROOT}/artifacts/line_follow_v1"
 RUNNER_BIN="${ARTIFACT_DIR}/bin/lf_autotest_runner"
 
+if [[ -d "${ROOT_DIR}/TDPS/firmware" ]]; then
+  FW_ROOT="${ROOT_DIR}/TDPS/firmware"
+elif [[ -d "${FW_ROOT}" ]]; then
+  FW_ROOT="${FW_ROOT}"
+else
+  echo "[build] cannot find firmware sources under ${ROOT_DIR}/TDPS/firmware or ${FW_ROOT}" >&2
+  exit 2
+fi
+
 mkdir -p "$(dirname "${RUNNER_BIN}")"
 
 EXTRA_DEFS=()
@@ -37,26 +46,26 @@ gcc -std=c11 -Wall -Wextra -Werror \
   -DWL_STUB_USE_LF_TIME \
   -DWL_STUB_QUIET \
   ${EXTRA_DEFS[@]+"${EXTRA_DEFS[@]}"} \
-  -I"${ROOT_DIR}/firmware/Inc" \
-  -I"${ROOT_DIR}/firmware/common" \
-  -I"${ROOT_DIR}/firmware/platform" \
+  -I"${FW_ROOT}/Inc" \
+  -I"${FW_ROOT}/common" \
+  -I"${FW_ROOT}/platform" \
   -I"${LF_COMMON_DIR}" \
   -I"${LF_COMMON_DIR}/harness" \
   -I"${LF_SUITE_DIR}" \
-  "${ROOT_DIR}/firmware/Src/lf_app.c" \
-  "${ROOT_DIR}/firmware/Src/lf_chassis.c" \
+  "${FW_ROOT}/Src/lf_app.c" \
+  "${FW_ROOT}/Src/lf_chassis.c" \
   "${LF_SUITE_DIR}/lf_sim_config_override.c" \
-  "${ROOT_DIR}/firmware/Src/lf_control.c" \
-  "${ROOT_DIR}/firmware/Src/lf_debug_monitor.c" \
-  "${ROOT_DIR}/firmware/Src/lf_sensor.c" \
-  "${ROOT_DIR}/firmware/Src/lf_radar.c" \
-  "${ROOT_DIR}/firmware/Src/lf_future_hooks.c" \
-  "${ROOT_DIR}/firmware/Src/wireless_hooks.c" \
-  "${ROOT_DIR}/firmware/Src/wl_app.c" \
-  "${ROOT_DIR}/firmware/Src/wl_lora.c" \
-  "${ROOT_DIR}/firmware/Src/wl_protocol.c" \
-  "${ROOT_DIR}/firmware/Src/wl_config.c" \
-  "${ROOT_DIR}/firmware/Src/wl_platform_stub.c" \
+  "${FW_ROOT}/Src/lf_control.c" \
+  "${FW_ROOT}/Src/lf_debug_monitor.c" \
+  "${FW_ROOT}/Src/lf_sensor.c" \
+  "${FW_ROOT}/Src/lf_radar.c" \
+  "${FW_ROOT}/Src/lf_future_hooks.c" \
+  "${FW_ROOT}/Src/wireless_hooks.c" \
+  "${FW_ROOT}/Src/wl_app.c" \
+  "${FW_ROOT}/Src/wl_lora.c" \
+  "${FW_ROOT}/Src/wl_protocol.c" \
+  "${FW_ROOT}/Src/wl_config.c" \
+  "${FW_ROOT}/Src/wl_platform_stub.c" \
   "${LF_COMMON_DIR}/harness/lf_harness_core.c" \
   "${LF_COMMON_DIR}/harness/lf_harness_scenarios.c" \
   "${LF_COMMON_DIR}/harness/lf_harness_evaluator.c" \
